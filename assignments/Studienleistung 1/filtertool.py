@@ -13,12 +13,13 @@ blur = lambda x,y,s: math.exp(-(x*x+y*y)/(2*s*s))
 
 def apply_kernel(img: Image, kernel: list) -> Image:
     img_applied = img.copy()
+    w,h = img_applied.size
     kernel_size = (validate_kernel(kernel)-1)//2
     num_channels = len(img.getpixel((0,0)))
 
     # iterate over image pixels
-    for x in range(img_applied.width):
-        for y in range(img_applied.height):
+    for x in range(w):
+        for y in range(h):
             # apply kernel on pixel
             weighted_sum = tuple(0 for _ in range(num_channels))
             for xoff in range(-kernel_size, kernel_size+1):
@@ -85,12 +86,12 @@ def convert_to_usm(blur: list, amount: float):
     k1[leng//2][leng//2] += amount+1
     return k1
 
-def contrast(img: Image, factor):
+def contrast(img: Image, factor: float, offset: float):
     out = img.copy()
     w,h = img.size
     def contrast_on_pixel(value):
         return tuple(max(0, min(
-            int(((channel / 255.0 - 0.5) * factor + 0.5) * 255.0),
+            int(((channel / 255.0 - offset) * factor + offset) * 255.0),
             255)) for channel in value)
 
     for x in range(w):
@@ -99,6 +100,15 @@ def contrast(img: Image, factor):
             out.putpixel((x,y),contrast_on_pixel(value))
     return out
 
-blur_kernel = generate_blur(blur, 3, 1)
-usm1 = convert_to_usm(blur_kernel, 0.5)
-contrast(i_input, 1.5).save("output.png")
+def threshold(img: Image, t: int):
+    out = img.convert("L")
+    w,h = img.size
+    for x in range(w):
+        for y in range(h):
+            value = img.getpixel((x,y))
+            value = (value>=t)*255
+            out.putpixel((x,y),value)
+    return out
+
+
+threshold(i_input, 50).save("output.png")
